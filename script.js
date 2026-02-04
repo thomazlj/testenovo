@@ -2,17 +2,18 @@
 // CONFIG
 // ===============================
 const STUDY_TOTAL = 50 * 60;
-const BREAK_TOTAL = 10 * 60;
+const SHORT_BREAK = 10 * 60;
+const LONG_BREAK = 30 * 60;
 const POMODORO_MAX = 4;
 
 // ===============================
 // ESTADO
 // ===============================
 let studyTime = STUDY_TOTAL;
-let breakTime = BREAK_TOTAL;
+let breakTime = SHORT_BREAK;
 let distractionTime = 0;
-let pomodoros = 0;
 
+let pomodoros = 0;
 let state = "study"; // study | distracted | break
 let paused = true;   // começa pausado
 
@@ -23,6 +24,19 @@ function formatTime(sec) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
   const s = String(sec % 60).padStart(2, "0");
   return `${m}:${s}`;
+}
+
+// ===============================
+// HISTÓRICO
+// ===============================
+function addHistory(text) {
+  const li = document.createElement("li");
+  li.textContent = text;
+  document.getElementById("historyList").prepend(li);
+}
+
+function clearHistory() {
+  document.getElementById("historyList").innerHTML = "";
 }
 
 // ===============================
@@ -50,14 +64,13 @@ function updateUI() {
     stateEl.textContent = "FOCANDO";
     stateEl.style.background = "#20e070";
   } else if (state === "break") {
-    stateEl.textContent = "DESCANSO";
+    stateEl.textContent = breakTime === LONG_BREAK ? "DESCANSO LONGO" : "DESCANSO";
     stateEl.style.background = "#3498db";
   } else {
     stateEl.textContent = "DISTRAÍDO";
     stateEl.style.background = "#ff4d4d";
   }
 
-  // BOTÕES
   document.getElementById("distractBtn").style.display =
     !paused && state === "study" ? "inline-block" : "none";
 
@@ -92,18 +105,18 @@ function returnToFocus() {
 
 function skipBreak() {
   if (state === "break") {
-    breakTime = BREAK_TOTAL;
-    studyTime = STUDY_TOTAL;
-    state = "study";
-    paused = true;
-    updateUI();
+    addHistory("Descanso pulado");
+    startNextStudy();
   }
 }
 
 function resetAll() {
-  addHistory();
+  addHistory(
+    `Sessão resetada — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
+  );
+
   studyTime = STUDY_TOTAL;
-  breakTime = BREAK_TOTAL;
+  breakTime = SHORT_BREAK;
   distractionTime = 0;
   pomodoros = 0;
   state = "study";
@@ -112,18 +125,36 @@ function resetAll() {
 }
 
 // ===============================
-// HISTÓRICO
+// TRANSIÇÕES
 // ===============================
-function addHistory() {
-  if (studyTime === STUDY_TOTAL && distractionTime === 0) return;
+function startBreak() {
+  addHistory(
+    `Foco concluído — Foco: 50:00 | Distração: ${formatTime(distractionTime)}`
+  );
 
-  const li = document.createElement("li");
-  li.textContent = `Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`;
-  document.getElementById("historyList").prepend(li);
+  pomodoros++;
+
+  if (pomodoros % POMODORO_MAX === 0) {
+    breakTime = LONG_BREAK;
+  } else {
+    breakTime = SHORT_BREAK;
+  }
+
+  distractionTime = 0;
+  state = "break";
 }
 
-function clearHistory() {
-  document.getElementById("historyList").innerHTML = "";
+function startNextStudy() {
+  addHistory(
+    breakTime === LONG_BREAK
+      ? "Descanso longo concluído — 30:00"
+      : "Descanso concluído — 10:00"
+  );
+
+  studyTime = STUDY_TOTAL;
+  breakTime = SHORT_BREAK;
+  state = "study";
+  paused = true; // você decide quando começar
 }
 
 // ===============================
@@ -135,18 +166,14 @@ setInterval(() => {
   if (state === "study") {
     studyTime--;
     if (studyTime <= 0) {
-      pomodoros++;
-      state = "break";
-      breakTime = BREAK_TOTAL;
+      startBreak();
     }
   }
 
   else if (state === "break") {
     breakTime--;
     if (breakTime <= 0) {
-      studyTime = STUDY_TOTAL;
-      state = "study";
-      paused = true; // você decide quando voltar
+      startNextStudy();
     }
   }
 
