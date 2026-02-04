@@ -15,7 +15,9 @@ let distractionTime = 0;
 
 let pomodoros = 0;
 let state = "study"; // study | distracted | break
-let paused = true;   // começa pausado
+let paused = true;
+
+let speed = 1; // multiplicador de tempo
 
 // ===============================
 // UTIL
@@ -45,11 +47,8 @@ function clearHistory() {
 function updateUI() {
   const timerEl = document.getElementById("studyTimer");
 
-  if (state === "break") {
-    timerEl.textContent = formatTime(breakTime);
-  } else {
-    timerEl.textContent = formatTime(studyTime);
-  }
+  timerEl.textContent =
+    state === "break" ? formatTime(breakTime) : formatTime(studyTime);
 
   document.getElementById("distractionTimer").textContent = formatTime(distractionTime);
   document.getElementById("pomodoros").textContent = pomodoros;
@@ -79,6 +78,9 @@ function updateUI() {
 
   document.getElementById("skipBreakBtn").style.display =
     !paused && state === "break" ? "inline-block" : "none";
+
+  document.getElementById("skipFocusBtn").style.display =
+    !paused && state === "study" ? "inline-block" : "none";
 }
 
 // ===============================
@@ -87,6 +89,10 @@ function updateUI() {
 function togglePause() {
   paused = !paused;
   updateUI();
+}
+
+function setSpeed(val) {
+  speed = Number(val);
 }
 
 function distract() {
@@ -103,6 +109,15 @@ function returnToFocus() {
   }
 }
 
+function skipFocus() {
+  if (state === "study") {
+    addHistory(
+      `Foco pulado — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
+    );
+    startBreak();
+  }
+}
+
 function skipBreak() {
   if (state === "break") {
     addHistory("Descanso pulado");
@@ -114,7 +129,6 @@ function resetAll() {
   addHistory(
     `Sessão resetada — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
   );
-
   studyTime = STUDY_TOTAL;
   breakTime = SHORT_BREAK;
   distractionTime = 0;
@@ -133,13 +147,7 @@ function startBreak() {
   );
 
   pomodoros++;
-
-  if (pomodoros % POMODORO_MAX === 0) {
-    breakTime = LONG_BREAK;
-  } else {
-    breakTime = SHORT_BREAK;
-  }
-
+  breakTime = pomodoros % POMODORO_MAX === 0 ? LONG_BREAK : SHORT_BREAK;
   distractionTime = 0;
   state = "break";
 }
@@ -154,7 +162,7 @@ function startNextStudy() {
   studyTime = STUDY_TOTAL;
   breakTime = SHORT_BREAK;
   state = "study";
-  paused = true; // você decide quando começar
+  paused = true;
 }
 
 // ===============================
@@ -163,22 +171,22 @@ function startNextStudy() {
 setInterval(() => {
   if (paused) return;
 
-  if (state === "study") {
-    studyTime--;
-    if (studyTime <= 0) {
-      startBreak();
+  for (let i = 0; i < speed; i++) {
+    if (state === "study") {
+      studyTime--;
+      if (studyTime <= 0) {
+        startBreak();
+        break;
+      }
+    } else if (state === "break") {
+      breakTime--;
+      if (breakTime <= 0) {
+        startNextStudy();
+        break;
+      }
+    } else if (state === "distracted") {
+      distractionTime++;
     }
-  }
-
-  else if (state === "break") {
-    breakTime--;
-    if (breakTime <= 0) {
-      startNextStudy();
-    }
-  }
-
-  else if (state === "distracted") {
-    distractionTime++;
   }
 
   updateUI();
