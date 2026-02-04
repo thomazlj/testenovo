@@ -1,9 +1,9 @@
 // ===============================
 // CONFIGURAÇÕES
 // ===============================
-const STUDY_TOTAL = 50 * 60;   // 50 min
-const SHORT_BREAK = 5 * 60;    // pausa curta
-const LONG_BREAK = 15 * 60;    // pausa longa
+const STUDY_TOTAL = 50 * 60;
+const SHORT_BREAK = 5 * 60;
+const LONG_BREAK = 15 * 60;
 
 // ===============================
 // ESTADO GLOBAL
@@ -16,7 +16,7 @@ let state = "idle"; // idle | study | distracted | shortBreak | longBreak
 let paused = true;
 
 // ===============================
-// FUNÇÕES AUXILIARES
+// UTIL
 // ===============================
 function formatTime(sec) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
@@ -25,7 +25,7 @@ function formatTime(sec) {
 }
 
 // ===============================
-// ATUALIZA UI
+// UI
 // ===============================
 function updateUI() {
   document.getElementById("studyTimer").textContent = formatTime(studyTime);
@@ -43,35 +43,37 @@ function updateUI() {
   const stateEl = document.getElementById("state");
   stateEl.textContent = labels[state];
 
-  // Cor do estado
-  if (state === "distracted") {
-    stateEl.style.background = "#ff4d4d";
-    stateEl.style.color = "#300";
-  } else if (state === "study") {
+  if (state === "study") {
     stateEl.style.background = "#20e070";
     stateEl.style.color = "#0a2";
+  } else if (state === "distracted") {
+    stateEl.style.background = "#ff4d4d";
+    stateEl.style.color = "#300";
   } else {
-    stateEl.style.background = "#444";
+    stateEl.style.background = "#555";
     stateEl.style.color = "#eee";
   }
 }
 
 // ===============================
-// CONTROLES
+// CONTROLES (BOTÕES)
 // ===============================
 function togglePause() {
-  paused = !paused;
-}
-
-function startStudy() {
-  state = "study";
-  paused = false;
+  // Se estiver parado, Play vira FOCAR
+  if (state === "idle") {
+    state = "study";
+    paused = false;
+  } else {
+    paused = !paused;
+  }
+  updateUI();
 }
 
 function distract() {
   if (state === "study") {
     state = "distracted";
     paused = false;
+    updateUI();
   }
 }
 
@@ -81,16 +83,14 @@ function resetAll() {
   pomodoros = 0;
   state = "idle";
   paused = true;
+  updateUI();
 }
 
 // ===============================
 // LOOP PRINCIPAL
 // ===============================
 setInterval(() => {
-  if (paused) {
-    updateUI();
-    return;
-  }
+  if (paused) return;
 
   if (state === "study") {
     studyTime--;
