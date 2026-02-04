@@ -7,7 +7,7 @@
 </head>
 <body>
 
-  <div class="status" id="state">FOCANDO</div>
+  <div class="status" id="state">PAUSADO</div>
 
   <div class="timer" id="studyTimer">50:00</div>
 
@@ -30,7 +30,10 @@
   </div>
 
   <div class="history">
-    <h3>Histórico</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>Histórico</h3>
+      <button class="ghost" onclick="clearHistory()">🗑 Limpar</button>
+    </div>
     <ul id="historyList"></ul>
   </div>
 
