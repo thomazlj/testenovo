@@ -56,16 +56,23 @@ function updateUI() {
 }
 
 // ===============================
-// CONTROLES (BOTÕES)
+// CONTROLES
 // ===============================
 function togglePause() {
-  // Se estiver parado, Play vira FOCAR
-  if (state === "idle") {
-    state = "study";
+  // PLAY
+  if (paused) {
     paused = false;
-  } else {
-    paused = !paused;
+
+    // Se estava parado ou distraído, volta a focar
+    if (state === "idle" || state === "distracted") {
+      state = "study";
+    }
   }
+  // PAUSE
+  else {
+    paused = true;
+  }
+
   updateUI();
 }
 
