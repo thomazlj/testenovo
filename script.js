@@ -12,7 +12,7 @@ let distractionTime = 0;
 let pomodoros = 0;
 
 let state = "study"; // study | distracted
-let paused = false;
+let paused = true;   // COMEÇA PAUSADO
 
 // ===============================
 // UTIL
@@ -55,19 +55,23 @@ function updateUI() {
 // ===============================
 // CONTROLES
 // ===============================
-function distract() {
-  if (state === "study") state = "distracted";
-  updateUI();
-}
-
-function returnToFocus() {
-  if (state === "distracted") state = "study";
-  updateUI();
-}
-
 function togglePause() {
   paused = !paused;
   updateUI();
+}
+
+function distract() {
+  if (!paused && state === "study") {
+    state = "distracted";
+    updateUI();
+  }
+}
+
+function returnToFocus() {
+  if (!paused && state === "distracted") {
+    state = "study";
+    updateUI();
+  }
 }
 
 function resetAll() {
@@ -76,7 +80,7 @@ function resetAll() {
   distractionTime = 0;
   pomodoros = 0;
   state = "study";
-  paused = false;
+  paused = true; // RESET VOLTA PAUSADO
   updateUI();
 }
 
@@ -84,9 +88,15 @@ function resetAll() {
 // HISTÓRICO
 // ===============================
 function addHistory() {
+  if (studyTime === STUDY_TOTAL && distractionTime === 0) return;
+
   const li = document.createElement("li");
   li.textContent = `Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`;
   document.getElementById("historyList").prepend(li);
+}
+
+function clearHistory() {
+  document.getElementById("historyList").innerHTML = "";
 }
 
 // ===============================
