@@ -12,15 +12,29 @@ const POMODORO_MAX = 4;
 let studyTime = STUDY_TOTAL;
 let breakTime = SHORT_BREAK;
 let distractionTime = 0;
-
 let pomodoros = 0;
+
 let state = "study"; // study | distracted | break
 let paused = true;
-
 let speed = 1;
 
 // ===============================
-// UTIL
+// SOM
+// ===============================
+function beep(freq = 800, duration = 300) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  osc.frequency.value = freq;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(() => {
+    osc.stop();
+    ctx.close();
+  }, duration);
+}
+
+// ===============================
+// TEMPO
 // ===============================
 function formatTime(sec) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
@@ -30,9 +44,7 @@ function formatTime(sec) {
 
 function now() {
   const d = new Date();
-  const h = String(d.getHours()).padStart(2, "0");
-  const m = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${m}`;
+  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
 
 // ===============================
@@ -52,9 +64,7 @@ function clearHistory() {
 // UI
 // ===============================
 function updateUI() {
-  const timerEl = document.getElementById("studyTimer");
-
-  timerEl.textContent =
+  document.getElementById("studyTimer").textContent =
     state === "break" ? formatTime(breakTime) : formatTime(studyTime);
 
   document.getElementById("distractionTimer").textContent =
@@ -82,15 +92,12 @@ function updateUI() {
 
   document.getElementById("distractBtn").style.display =
     !paused && state === "study" ? "inline-block" : "none";
-
   document.getElementById("focusBtn").style.display =
     !paused && state === "distracted" ? "inline-block" : "none";
-
-  document.getElementById("skipBreakBtn").style.display =
-    !paused && state === "break" ? "inline-block" : "none";
-
   document.getElementById("skipFocusBtn").style.display =
     !paused && state === "study" ? "inline-block" : "none";
+  document.getElementById("skipBreakBtn").style.display =
+    !paused && state === "break" ? "inline-block" : "none";
 }
 
 // ===============================
@@ -101,15 +108,14 @@ function togglePause() {
   updateUI();
 }
 
-function setSpeed(val) {
-  speed = Number(val);
+function setSpeed(v) {
+  speed = Number(v);
 }
 
 function distract() {
   if (!paused && state === "study") {
     state = "distracted";
     addHistory("Entrou em distração");
-    updateUI();
   }
 }
 
@@ -117,17 +123,12 @@ function returnToFocus() {
   if (!paused && state === "distracted") {
     state = "study";
     addHistory("Voltou a focar");
-    updateUI();
   }
 }
 
 function skipFocus() {
   if (state === "study") {
-    addHistory(
-      `Foco pulado — Foco: ${formatTime(
-        STUDY_TOTAL - studyTime
-      )} | Distração: ${formatTime(distractionTime)}`
-    );
+    addHistory(`Foco pulado — Foco: ${formatTime(STUDY_TOTAL - studyTime)}`);
     startBreak();
   }
 }
@@ -140,44 +141,38 @@ function skipBreak() {
 }
 
 function resetAll() {
-  addHistory(
-    `Sessão resetada — Foco: ${formatTime(
-      STUDY_TOTAL - studyTime
-    )} | Distração: ${formatTime(distractionTime)}`
-  );
-
+  addHistory(`Sessão resetada`);
   studyTime = STUDY_TOTAL;
   breakTime = SHORT_BREAK;
   distractionTime = 0;
   pomodoros = 0;
   state = "study";
   paused = true;
-  updateUI();
 }
 
 // ===============================
 // TRANSIÇÕES
 // ===============================
 function startBreak() {
-  addHistory(
-    `Foco concluído — Foco: 50:00 | Distração: ${formatTime(distractionTime)}`
-  );
-
+  beep();
+  addHistory(`Foco concluído`);
   pomodoros++;
-  breakTime =
-    pomodoros % POMODORO_MAX === 0 ? LONG_BREAK : SHORT_BREAK;
-
+  breakTime = pomodoros % POMODORO_MAX === 0 ? LONG_BREAK : SHORT_BREAK;
   distractionTime = 0;
   state = "break";
+
+  if (!document.getElementById("autoTransition").checked) {
+    paused = true;
+  }
 }
 
 function startNextStudy() {
+  beep(500);
   addHistory(
     breakTime === LONG_BREAK
-      ? "Descanso longo concluído — 30:00"
-      : "Descanso concluído — 10:00"
+      ? "Descanso longo concluído"
+      : "Descanso concluído"
   );
-
   studyTime = STUDY_TOTAL;
   breakTime = SHORT_BREAK;
   state = "study";
@@ -210,6 +205,47 @@ setInterval(() => {
 
   updateUI();
 }, 1000);
+
+// ===============================
+// VOZ
+// ===============================
+let recognition;
+let listening = false;
+
+function toggleVoice() {
+  if (!("webkitSpeechRecognition" in window)) {
+    alert("Seu navegador não suporta comandos de voz.");
+    return;
+  }
+
+  if (!recognition) {
+    recognition = new webkitSpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = true;
+
+    recognition.onresult = (e) => {
+      const cmd = e.results[e.results.length - 1][0].transcript.toLowerCase();
+
+      if (cmd.includes("play")) togglePause();
+      if (cmd.includes("pause")) togglePause();
+      if (cmd.includes("distrair")) distract();
+      if (cmd.includes("voltar")) returnToFocus();
+      if (cmd.includes("pular foco")) skipFocus();
+      if (cmd.includes("pular descanso")) skipBreak();
+      if (cmd.includes("reset")) resetAll();
+    };
+  }
+
+  if (!listening) {
+    recognition.start();
+    listening = true;
+    document.getElementById("voiceStatus").textContent = "ouvindo...";
+  } else {
+    recognition.stop();
+    listening = false;
+    document.getElementById("voiceStatus").textContent = "desligado";
+  }
+}
 
 // INIT
 updateUI();
