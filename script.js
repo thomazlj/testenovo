@@ -1,137 +1,104 @@
-const STUDY = 50 * 60;
-const BREAK = 10 * 60;
-const LONG_BREAK = 30 * 60;
-const MAX = 4;
-
-let study = STUDY;
-let breakT = BREAK;
-let distraction = 0;
+let mode = "focus"; // focus | break
+let running = false;
+let seconds = 50 * 60;
 let cycles = 0;
-
-let state = "paused"; // paused | study | break | distracted
-let auto = true;
+let interval = null;
 let speed = 1;
 
-// UTIL
-const fmt = s =>
-  `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const timerEl = document.getElementById("timer");
+const statusEl = document.getElementById("status");
+const cyclesEl = document.getElementById("cycles");
+const distractionEl = document.getElementById("distraction");
+const historyEl = document.getElementById("history");
+const beep = document.getElementById("beep");
 
-const now = () =>
-  new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+function format(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, "0");
+  const s = String(sec % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
 
-// UI
-function update() {
-  timer.textContent = state === "break" ? fmt(breakT) : fmt(study);
+function updateUI() {
+  timerEl.textContent = format(seconds);
+  cyclesEl.textContent = `${cycles}/4`;
 
-  if (state === "paused") {
-    stateEl("PAUSADO", "#555", "#888");
-  } else if (state === "study") {
-    stateEl("FOCANDO", "#20e070", "#20e070");
-  } else if (state === "break") {
-    stateEl("DESCANSO", "#3498db", "#3498db");
+  if (!running) {
+    statusEl.textContent = "PAUSADO";
+    timerEl.style.color = "#aaa";
+  } else if (mode === "focus") {
+    statusEl.textContent = "FOCO";
+    timerEl.style.color = "#3f3";
   } else {
-    stateEl("DISTRAÍDO", "#ff4d4d", "#ff4d4d");
+    statusEl.textContent = "DESCANSO";
+    timerEl.style.color = "#4af";
+  }
+}
+
+function tick() {
+  seconds -= speed;
+  if (seconds <= 0) finishStage();
+  updateUI();
+}
+
+function start() {
+  if (running) return;
+  running = true;
+  interval = setInterval(tick, 1000);
+  updateUI();
+}
+
+function pause() {
+  running = false;
+  clearInterval(interval);
+  updateUI();
+}
+
+function finishStage() {
+  pause();
+  beep.play();
+  saveHistory();
+
+  if (mode === "focus") {
+    cycles++;
+    mode = "break";
+    seconds = cycles % 4 === 0 ? 30 * 60 : 10 * 60;
+  } else {
+    mode = "focus";
+    seconds = 50 * 60;
   }
 
-  distractionEl.textContent = fmt(distraction);
-  cyclesEl.textContent = cycles;
+  updateUI();
 }
 
-function stateEl(txt, bg, color) {
-  state.textContent = txt;
-  state.style.background = bg;
-  timer.style.color = color;
+function skipStage() {
+  finishStage();
 }
 
-// CONTROLES
-function togglePlay() {
-  state = state === "paused" ? "study" : "paused";
-  update();
-}
-
-function distract() {
-  if (state === "study") state = "distracted";
-}
-
-function skipFocus() {
-  if (state === "study") startBreak();
-}
-
-function skipBreak() {
-  if (state === "break") startStudy();
-}
-
-function toggleAuto() {
-  auto = !auto;
-  autoBtn.style.opacity = auto ? "1" : "0.4";
-}
-
-function resetAll() {
-  study = STUDY;
-  breakT = BREAK;
-  distraction = 0;
+function reset() {
+  pause();
+  mode = "focus";
+  seconds = 50 * 60;
   cycles = 0;
-  state = "paused";
-  history.innerHTML = "";
-  update();
+  updateUI();
 }
 
-// TRANSIÇÕES
-function startBreak() {
-  history.prepend(li("Foco concluído"));
-  cycles++;
-  breakT = cycles % MAX === 0 ? LONG_BREAK : BREAK;
-  state = auto ? "break" : "paused";
+function saveHistory() {
+  const li = document.createElement("li");
+  li.textContent = `${new Date().toLocaleTimeString()} — ${mode}`;
+  historyEl.prepend(li);
 }
 
-function startStudy() {
-  history.prepend(li("Descanso concluído"));
-  study = STUDY;
-  state = "paused";
-}
+document.getElementById("play").onclick = start;
+document.getElementById("pause").onclick = pause;
+document.getElementById("skip").onclick = skipStage;
+document.getElementById("reset").onclick = reset;
 
-// LOOP
-setInterval(() => {
-  for (let i = 0; i < speed; i++) {
-    if (state === "study" && --study <= 0) startBreak();
-    if (state === "break" && --breakT <= 0) startStudy();
-    if (state === "distracted") distraction++;
-  }
-  update();
-}, 1000);
+document.getElementById("speed").onchange = e => {
+  speed = Number(e.target.value);
+};
 
-// HISTÓRICO
-function li(t) {
-  const e = document.createElement("li");
-  e.textContent = `${now()} — ${t}`;
-  return e;
-}
+document.getElementById("clearHistory").onclick = () => {
+  historyEl.innerHTML = "";
+};
 
-// VOZ
-let rec, listening=false;
-function toggleVoice() {
-  if (!("webkitSpeechRecognition" in window))
-    return alert("Use Chrome.");
-
-  if (!rec) {
-    rec = new webkitSpeechRecognition();
-    rec.lang = "pt-BR";
-    rec.continuous = true;
-    rec.onresult = e => {
-      const c = e.results[e.results.length-1][0].transcript.toLowerCase();
-      if (c.includes("play")) togglePlay();
-      if (c.includes("pause")) togglePlay();
-      if (c.includes("distrair")) distract();
-      if (c.includes("pular foco")) skipFocus();
-      if (c.includes("pular descanso")) skipBreak();
-      if (c.includes("reset")) resetAll();
-    };
-  }
-
-  listening = !listening;
-  listening ? rec.start() : rec.stop();
-  voiceStatus.textContent = listening ? "escutando" : "desligado";
-}
-
-// INIT
-update();
+updateUI();
