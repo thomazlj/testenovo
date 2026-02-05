@@ -9,38 +9,38 @@
 
   <div class="status" id="state">PAUSADO</div>
 
-  <div class="timer" id="studyTimer">50:00</div>
+  <div class="timer" id="timer">50:00</div>
 
   <div class="stats">
     <div class="stat red">
       ⚠ Distração
-      <span id="distractionTimer">00:00</span>
+      <span id="distraction">00:00</span>
     </div>
     <div class="stat green">
       ⚡ Ciclos
-      <span><span id="pomodoros">0</span>/<span id="pomodoroMax">4</span></span>
+      <span class="inline">
+        <span id="cycles">0</span>/<span id="cyclesMax">4</span>
+      </span>
     </div>
   </div>
 
   <div class="controls">
-    <button id="distractBtn" class="danger" onclick="distract()">☕</button>
-    <button id="focusBtn" class="success" onclick="returnToFocus()">▶️</button>
-    <button class="ghost" onclick="togglePause()">⏯</button>
+    <button class="ghost" onclick="togglePlay()">▶️</button>
+    <button class="danger" onclick="distract()">☕</button>
+    <button class="ghost" onclick="skipFocus()">⏭ Foco</button>
+    <button class="ghost" onclick="skipBreak()">⏭ Descanso</button>
     <button class="ghost" onclick="toggleAuto()" id="autoBtn">🔁</button>
     <button class="ghost" onclick="resetAll()">↻</button>
   </div>
 
   <div class="options">
-    <div>
-      ⏩ Velocidade:
-      <select onchange="setSpeed(this.value)">
-        <option value="1">1x</option>
-        <option value="5">5x</option>
-        <option value="10">10x</option>
-        <option value="60">60x</option>
-        <option value="300">300x</option>
-      </select>
-    </div>
+    ⏩ Velocidade:
+    <select onchange="setSpeed(this.value)">
+      <option value="1">1x</option>
+      <option value="10">10x</option>
+      <option value="60">60x</option>
+      <option value="300">300x</option>
+    </select>
 
     <div class="voice">
       <button class="ghost" onclick="toggleVoice()">🎤</button>
@@ -49,24 +49,8 @@
   </div>
 
   <div class="history">
-    <div class="history-header">
-      <h3>Histórico</h3>
-      <button class="ghost" onclick="clearHistory()">🗑</button>
-    </div>
-    <ul id="historyList"></ul>
-  </div>
-
-  <!-- LEGENDA DE VOZ -->
-  <div class="voice-legend">
-    <strong>🎤 Comandos de voz</strong>
-    <ul>
-      <li>“play” / “pause”</li>
-      <li>“me distrair”</li>
-      <li>“voltar a focar”</li>
-      <li>“pular foco”</li>
-      <li>“pular descanso”</li>
-      <li>“resetar”</li>
-    </ul>
+    <h3>Histórico</h3>
+    <ul id="history"></ul>
   </div>
 
   <script src="script.js"></script>
