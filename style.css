@@ -1,56 +1,80 @@
 body {
   margin: 0;
-  padding-top: 20px; /* antes geralmente é 40px ou mais */
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #111;
-  color: #fff;
+  min-height: 100vh;
+  background: radial-gradient(circle at bottom, #0f2f1f, #050505 60%);
+  color: #eaeaea;
+  font-family: system-ui, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-top: 40px;
 }
 
 .status {
-  margin-bottom: 8px; /* antes costuma ser 20px */
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-weight: bold;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-bottom: 30px;
 }
 
 .timer {
-  font-size: 64px;
-  margin: 4px 0 12px 0; /* 👈 ISSO é o principal */
-  font-weight: bold;
-}
-
-.info {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
+  font-size: 120px;
+  color: #20e070;
   margin-bottom: 20px;
 }
 
-.controls button {
-  font-size: 20px;
-  margin: 5px;
+.stats {
+  display: flex;
+  gap: 50px;
+  margin-bottom: 30px;
 }
 
-.settings {
-  margin: 15px;
+.stat {
+  text-align: center;
 }
 
-.voice {
-  margin-top: 10px;
+.stat span {
+  display: inline-block;
+  font-size: 22px;
+  margin-top: 5px;
 }
 
-.legend {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  font-size: 12px;
-  opacity: 0.7;
+.red span { color: #ff4d4d; }
+.green span { color: #20e070; }
+
+.controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 40px;
 }
 
-#history {
+button {
+  padding: 14px 22px;
+  font-size: 15px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.danger { background: #e74c3c; color: white; }
+.success { background: #20e070; color: #063; }
+.ghost {
+  background: #111;
+  color: #aaa;
+  border: 1px solid #333;
+}
+
+.history {
+  width: 320px;
+}
+
+.history ul {
   list-style: none;
   padding: 0;
+}
+
+.history li {
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid #222;
 }
