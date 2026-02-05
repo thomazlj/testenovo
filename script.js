@@ -17,7 +17,7 @@ let pomodoros = 0;
 let state = "study"; // study | distracted | break
 let paused = true;
 
-let speed = 1; // multiplicador de tempo
+let speed = 1;
 
 // ===============================
 // UTIL
@@ -28,12 +28,19 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
+function now() {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
 // ===============================
 // HISTÓRICO
 // ===============================
 function addHistory(text) {
   const li = document.createElement("li");
-  li.textContent = text;
+  li.textContent = `${now()} — ${text}`;
   document.getElementById("historyList").prepend(li);
 }
 
@@ -50,7 +57,9 @@ function updateUI() {
   timerEl.textContent =
     state === "break" ? formatTime(breakTime) : formatTime(studyTime);
 
-  document.getElementById("distractionTimer").textContent = formatTime(distractionTime);
+  document.getElementById("distractionTimer").textContent =
+    formatTime(distractionTime);
+
   document.getElementById("pomodoros").textContent = pomodoros;
   document.getElementById("pomodoroMax").textContent = POMODORO_MAX;
 
@@ -63,7 +72,8 @@ function updateUI() {
     stateEl.textContent = "FOCANDO";
     stateEl.style.background = "#20e070";
   } else if (state === "break") {
-    stateEl.textContent = breakTime === LONG_BREAK ? "DESCANSO LONGO" : "DESCANSO";
+    stateEl.textContent =
+      breakTime === LONG_BREAK ? "DESCANSO LONGO" : "DESCANSO";
     stateEl.style.background = "#3498db";
   } else {
     stateEl.textContent = "DISTRAÍDO";
@@ -98,6 +108,7 @@ function setSpeed(val) {
 function distract() {
   if (!paused && state === "study") {
     state = "distracted";
+    addHistory("Entrou em distração");
     updateUI();
   }
 }
@@ -105,6 +116,7 @@ function distract() {
 function returnToFocus() {
   if (!paused && state === "distracted") {
     state = "study";
+    addHistory("Voltou a focar");
     updateUI();
   }
 }
@@ -112,7 +124,9 @@ function returnToFocus() {
 function skipFocus() {
   if (state === "study") {
     addHistory(
-      `Foco pulado — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
+      `Foco pulado — Foco: ${formatTime(
+        STUDY_TOTAL - studyTime
+      )} | Distração: ${formatTime(distractionTime)}`
     );
     startBreak();
   }
@@ -127,8 +141,11 @@ function skipBreak() {
 
 function resetAll() {
   addHistory(
-    `Sessão resetada — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
+    `Sessão resetada — Foco: ${formatTime(
+      STUDY_TOTAL - studyTime
+    )} | Distração: ${formatTime(distractionTime)}`
   );
+
   studyTime = STUDY_TOTAL;
   breakTime = SHORT_BREAK;
   distractionTime = 0;
@@ -147,7 +164,9 @@ function startBreak() {
   );
 
   pomodoros++;
-  breakTime = pomodoros % POMODORO_MAX === 0 ? LONG_BREAK : SHORT_BREAK;
+  breakTime =
+    pomodoros % POMODORO_MAX === 0 ? LONG_BREAK : SHORT_BREAK;
+
   distractionTime = 0;
   state = "break";
 }
