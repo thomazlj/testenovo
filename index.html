@@ -1,64 +1,60 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pomodoro</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Focus Timer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="status" id="status">PAUSADO</div>
+  <div class="status" id="state">PAUSADO</div>
 
-  <div class="timer" id="timer">50:00</div>
+  <div class="timer" id="studyTimer">50:00</div>
 
-  <div class="info">
-    <div>⚠️ Distração <span id="distraction">00:00</span></div>
-    <div>⚡ Ciclos <span id="cycles">0/4</span></div>
+  <div class="stats">
+    <div class="stat red">
+      ⚠ Distração
+      <span id="distractionTimer">00:00</span>
+    </div>
+    <div class="stat green">
+      ⚡ Ciclos
+      <span><span id="pomodoros">0</span>/<span id="pomodoroMax">4</span></span>
+    </div>
   </div>
 
   <div class="controls">
-    <button id="play">▶️</button>
-    <button id="pause">⏸️</button>
-    <button id="skip">⏭️</button>
-    <button id="reset">🔄</button>
+    <button id="distractBtn" class="danger" onclick="distract()">☕ Me Distrai</button>
+    <button id="focusBtn" class="success" onclick="returnToFocus()">▶️ Voltar a Focar</button>
+    <button id="skipFocusBtn" class="ghost" onclick="skipFocus()">⏭ Pular Foco</button>
+    <button id="skipBreakBtn" class="ghost" onclick="skipBreak()">⏭ Pular Descanso</button>
+    <button class="ghost" onclick="togglePause()">⏯</button>
+    <button class="ghost" onclick="resetAll()">↻</button>
   </div>
 
-  <div class="settings">
+  <div style="margin-bottom:20px;">
     ⏩ Velocidade:
-    <select id="speed">
+    <select onchange="setSpeed(this.value)">
       <option value="1">1x</option>
       <option value="5">5x</option>
       <option value="10">10x</option>
-      <option value="60">60x</option>
-      <option value="300">300x</option>
+      <option value="60">60x (teste)</option>
     </select>
 
-    <label>
-      <input type="checkbox" id="autoTransition" checked />
-      Transição automática
-    </label>
+    &nbsp;&nbsp;
+
+    🔁 Transição:
+    <button class="ghost" onclick="toggleAuto()" id="autoBtn">
+      Automática
+    </button>
   </div>
 
-  <div class="voice">
-    🎤 <span id="voiceStatus">desligado</span>
+  <div class="history">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>Histórico</h3>
+      <button class="ghost" onclick="clearHistory()">🗑 Limpar</button>
+    </div>
+    <ul id="historyList"></ul>
   </div>
-
-  <div class="legend">
-    <strong>Comandos de voz:</strong><br />
-    “iniciar”<br />
-    “pausar”<br />
-    “pular foco”<br />
-    “pular descanso”<br />
-    “resetar”
-  </div>
-
-  <h2>Histórico</h2>
-  <button id="clearHistory">🗑️ Apagar histórico</button>
-  <ul id="history"></ul>
-
-  <audio id="beep">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
-  </audio>
 
   <script src="script.js"></script>
 </body>
