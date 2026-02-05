@@ -1,120 +1,137 @@
-const STUDY_TOTAL = 50 * 60;
-const SHORT_BREAK = 10 * 60;
+const STUDY = 50 * 60;
+const BREAK = 10 * 60;
 const LONG_BREAK = 30 * 60;
-const POMODORO_MAX = 4;
+const MAX = 4;
 
-let studyTime = STUDY_TOTAL;
-let breakTime = SHORT_BREAK;
-let distractionTime = 0;
-let pomodoros = 0;
+let study = STUDY;
+let breakT = BREAK;
+let distraction = 0;
+let cycles = 0;
 
-let state = "study";
-let paused = true;
-let speed = 1;
+let state = "paused"; // paused | study | break | distracted
 let auto = true;
+let speed = 1;
 
 // UTIL
-const formatTime = s =>
+const fmt = s =>
   `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 
 const now = () =>
   new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
 
-// HISTÓRICO
-function addHistory(t){
-  const li=document.createElement("li");
-  li.textContent=`${now()} — ${t}`;
-  historyList.prepend(li);
-}
-function clearHistory(){historyList.innerHTML="";}
-
 // UI
-function updateUI(){
-  const timer=studyTimer;
-  if(paused){
-    timer.style.color="#888";
-    stateEl.textContent="PAUSADO";
-    stateEl.style.background="#555";
-  } else if(state==="study"){
-    timer.style.color="#20e070";
-    stateEl.textContent="FOCANDO";
-    stateEl.style.background="#20e070";
-  } else if(state==="break"){
-    timer.style.color="#3498db";
-    stateEl.textContent="DESCANSO";
-    stateEl.style.background="#3498db";
+function update() {
+  timer.textContent = state === "break" ? fmt(breakT) : fmt(study);
+
+  if (state === "paused") {
+    stateEl("PAUSADO", "#555", "#888");
+  } else if (state === "study") {
+    stateEl("FOCANDO", "#20e070", "#20e070");
+  } else if (state === "break") {
+    stateEl("DESCANSO", "#3498db", "#3498db");
   } else {
-    timer.style.color="#ff4d4d";
-    stateEl.textContent="DISTRAÍDO";
-    stateEl.style.background="#ff4d4d";
+    stateEl("DISTRAÍDO", "#ff4d4d", "#ff4d4d");
   }
 
-  timer.textContent = state==="break" ? formatTime(breakTime) : formatTime(studyTime);
-  distractionTimer.textContent=formatTime(distractionTime);
-  pomodorosEl.textContent=pomodoros;
+  distractionEl.textContent = fmt(distraction);
+  cyclesEl.textContent = cycles;
+}
+
+function stateEl(txt, bg, color) {
+  state.textContent = txt;
+  state.style.background = bg;
+  timer.style.color = color;
 }
 
 // CONTROLES
-function togglePause(){paused=!paused;updateUI();}
-function toggleAuto(){
-  auto=!auto;
-  autoBtn.style.opacity=auto?"1":"0.4";
+function togglePlay() {
+  state = state === "paused" ? "study" : "paused";
+  update();
 }
-function setSpeed(v){speed=+v;}
-function distract(){if(!paused&&state==="study")state="distracted";}
-function returnToFocus(){if(state==="distracted")state="study";}
-function resetAll(){addHistory("Sessão resetada");studyTime=STUDY_TOTAL;breakTime=SHORT_BREAK;distractionTime=0;pomodoros=0;paused=true;}
-function skipFocus(){if(state==="study"){addHistory("Foco pulado");startBreak();}}
-function skipBreak(){if(state==="break"){addHistory("Descanso pulado");startStudy();}}
+
+function distract() {
+  if (state === "study") state = "distracted";
+}
+
+function skipFocus() {
+  if (state === "study") startBreak();
+}
+
+function skipBreak() {
+  if (state === "break") startStudy();
+}
+
+function toggleAuto() {
+  auto = !auto;
+  autoBtn.style.opacity = auto ? "1" : "0.4";
+}
+
+function resetAll() {
+  study = STUDY;
+  breakT = BREAK;
+  distraction = 0;
+  cycles = 0;
+  state = "paused";
+  history.innerHTML = "";
+  update();
+}
 
 // TRANSIÇÕES
-function startBreak(){
-  addHistory("Foco concluído");
-  pomodoros++;
-  breakTime=pomodoros%POMODORO_MAX===0?LONG_BREAK:SHORT_BREAK;
-  state="break";
-  if(!auto)paused=true;
+function startBreak() {
+  history.prepend(li("Foco concluído"));
+  cycles++;
+  breakT = cycles % MAX === 0 ? LONG_BREAK : BREAK;
+  state = auto ? "break" : "paused";
 }
-function startStudy(){
-  addHistory("Descanso concluído");
-  studyTime=STUDY_TOTAL;
-  state="study";
-  paused=true;
+
+function startStudy() {
+  history.prepend(li("Descanso concluído"));
+  study = STUDY;
+  state = "paused";
 }
 
 // LOOP
-setInterval(()=>{
-  if(paused)return;
-  for(let i=0;i<speed;i++){
-    if(state==="study"&&--studyTime<=0){startBreak();break;}
-    if(state==="break"&&--breakTime<=0){startStudy();break;}
-    if(state==="distracted")distractionTime++;
+setInterval(() => {
+  for (let i = 0; i < speed; i++) {
+    if (state === "study" && --study <= 0) startBreak();
+    if (state === "break" && --breakT <= 0) startStudy();
+    if (state === "distracted") distraction++;
   }
-  updateUI();
-},1000);
+  update();
+}, 1000);
+
+// HISTÓRICO
+function li(t) {
+  const e = document.createElement("li");
+  e.textContent = `${now()} — ${t}`;
+  return e;
+}
 
 // VOZ
 let rec, listening=false;
-function toggleVoice(){
-  if(!("webkitSpeechRecognition"in window))return alert("Sem suporte");
-  if(!rec){
-    rec=new webkitSpeechRecognition();
-    rec.lang="pt-BR";rec.continuous=true;
-    rec.onresult=e=>{
-      const c=e.results[e.results.length-1][0].transcript.toLowerCase();
-      if(c.includes("play"))togglePause();
-      if(c.includes("pause"))togglePause();
-      if(c.includes("distrair"))distract();
-      if(c.includes("voltar"))returnToFocus();
-      if(c.includes("pular foco"))skipFocus();
-      if(c.includes("pular descanso"))skipBreak();
-      if(c.includes("reset"))resetAll();
+function toggleVoice() {
+  if (!("webkitSpeechRecognition" in window))
+    return alert("Use Chrome.");
+
+  if (!rec) {
+    rec = new webkitSpeechRecognition();
+    rec.lang = "pt-BR";
+    rec.continuous = true;
+    rec.onresult = e => {
+      const c = e.results[e.results.length-1][0].transcript.toLowerCase();
+      if (c.includes("play")) togglePlay();
+      if (c.includes("pause")) togglePlay();
+      if (c.includes("distrair")) distract();
+      if (c.includes("pular foco")) skipFocus();
+      if (c.includes("pular descanso")) skipBreak();
+      if (c.includes("reset")) resetAll();
     };
   }
-  listening=!listening;
-  listening?rec.start():rec.stop();
-  voiceStatus.textContent=listening?"escutando":"desligado";
+
+  listening = !listening;
+  listening ? rec.start() : rec.stop();
+  voiceStatus.textContent = listening ? "escutando" : "desligado";
 }
 
 // INIT
-updateUI();
+update();
