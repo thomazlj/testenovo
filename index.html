@@ -31,18 +31,30 @@
     <button class="ghost" onclick="resetAll()">↻</button>
   </div>
 
-  <div style="margin-bottom:20px;">
+  <div style="margin:15px;">
     ⏩ Velocidade:
     <select onchange="setSpeed(this.value)">
       <option value="1">1x</option>
       <option value="5">5x</option>
       <option value="10">10x</option>
-      <option value="60">60x (teste)</option>
+      <option value="60">60x</option>
     </select>
   </div>
 
+  <div style="margin:15px;">
+    <label>
+      <input type="checkbox" id="autoTransition" checked>
+      Transição automática (foco → descanso)
+    </label>
+  </div>
+
+  <div style="margin:15px;">
+    <button class="ghost" onclick="toggleVoice()">🎤 Comandos de voz</button>
+    <span id="voiceStatus">desligado</span>
+  </div>
+
   <div class="history">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between;">
       <h3>Histórico</h3>
       <button class="ghost" onclick="clearHistory()">🗑 Limpar</button>
     </div>
