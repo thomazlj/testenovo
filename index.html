@@ -31,13 +31,20 @@
     <button class="ghost" onclick="resetAll()">↻</button>
   </div>
 
+  <div style="margin-bottom:15px;">
+    ⚙️ Início automático:
+    <button class="ghost" onclick="toggleAutoStart()" id="autoStartBtn">
+      OFF
+    </button>
+  </div>
+
   <div style="margin-bottom:20px;">
     ⏩ Velocidade:
     <select onchange="setSpeed(this.value)">
       <option value="1">1x</option>
+      <option value="5">5x</option>
       <option value="10">10x</option>
-      <option value="60">60x</option>
-      <option value="300">300x</option>
+      <option value="60">60x (teste)</option>
     </select>
   </div>
 
