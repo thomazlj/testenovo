@@ -122,6 +122,8 @@ function updateUI() {
 
   document.getElementById("autoStartBtn").textContent =
     autoStart ? "ON" : "OFF";
+
+  drawPiP(); // <<< atualização do PiP
 }
 
 // ===============================
@@ -251,7 +253,6 @@ function startNextStudy(playSound = true) {
   breakTime = SHORT_BREAK;
   state = "study";
   paused = !autoStart;
-  focusStartedLogged = false;
 }
 
 // ===============================
@@ -280,6 +281,55 @@ setInterval(() => {
 
   updateUI();
 }, 1000);
+
+// ===============================
+// PICTURE-IN-PICTURE
+// ===============================
+const pipCanvas = document.createElement("canvas");
+pipCanvas.width = 400;
+pipCanvas.height = 200;
+const pipCtx = pipCanvas.getContext("2d");
+
+const pipVideo = document.getElementById("pipVideo");
+pipVideo.srcObject = pipCanvas.captureStream();
+pipVideo.play();
+
+function drawPiP() {
+  pipCtx.clearRect(0, 0, 400, 200);
+
+  pipCtx.fillStyle = "#000";
+  pipCtx.fillRect(0, 0, 400, 200);
+
+  pipCtx.fillStyle = "#20e070";
+  pipCtx.font = "bold 48px Arial";
+  pipCtx.textAlign = "center";
+  pipCtx.fillText(
+    state === "break" ? formatTime(breakTime) : formatTime(studyTime),
+    200,
+    110
+  );
+
+  pipCtx.font = "bold 20px Arial";
+  pipCtx.fillText(
+    paused
+      ? "PAUSADO"
+      : state === "study"
+      ? "FOCANDO"
+      : state === "break"
+      ? "DESCANSO"
+      : "DISTRAÍDO",
+    200,
+    40
+  );
+}
+
+async function togglePiP() {
+  if (document.pictureInPictureElement) {
+    await document.exitPictureInPicture();
+  } else {
+    await pipVideo.requestPictureInPicture();
+  }
+}
 
 // INIT
 updateUI();
