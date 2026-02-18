@@ -1,78 +1,80 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(to bottom, #000, #003300);
-  color: white;
+  min-height: 100vh;
+  background: radial-gradient(circle at bottom, #0f2f1f, #050505 60%);
+  color: #eaeaea;
+  font-family: system-ui, sans-serif;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  height: 100vh;
+  padding-top: 40px;
 }
 
-.container {
-  text-align: center;
-  width: 350px;
-}
-
-.state {
-  padding: 10px;
-  border-radius: 20px;
-  margin-bottom: 10px;
-  background: #555;
+.status {
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-bottom: 30px;
 }
 
 .timer {
-  font-size: 70px;
-  margin: 20px 0;
-  color: #00ff66;
+  font-size: 120px;
+  color: #20e070;
+  margin-bottom: 20px;
 }
 
-/* 🔥 TOTAL DO DIA */
-.daily-total {
-  font-size: 20px;
-  margin-top: 10px;
-  opacity: 0.9;
-}
-
-.info-row {
+.stats {
   display: flex;
-  justify-content: space-between;
-  margin: 15px 0;
-  font-size: 18px;
+  gap: 50px;
+  margin-bottom: 30px;
 }
 
-.info-item {
-  display: flex;
-  gap: 5px;
-  align-items: center;
+.stat {
+  text-align: center;
 }
+
+.stat span {
+  display: inline-block;
+  font-size: 22px;
+  margin-top: 5px;
+}
+
+.red span { color: #ff4d4d; }
+.green span { color: #20e070; }
 
 .controls {
-  margin: 15px 0;
+  display: flex;
+  gap: 15px;
+  margin-bottom: 40px;
 }
 
-.controls button {
-  margin: 5px;
-  padding: 10px 15px;
-  background: #111;
-  color: white;
-  border: 1px solid #444;
+button {
+  padding: 14px 22px;
+  font-size: 15px;
+  border: none;
   border-radius: 10px;
   cursor: pointer;
 }
 
-.settings {
-  margin: 15px 0;
+.danger { background: #e74c3c; color: white; }
+.success { background: #20e070; color: #063; }
+.ghost {
+  background: #111;
+  color: #aaa;
+  border: 1px solid #333;
 }
 
-#historyList {
-  text-align: left;
-  max-height: 120px;
-  overflow-y: auto;
+.history {
+  width: 320px;
+}
+
+.history ul {
+  list-style: none;
   padding: 0;
 }
 
-#historyList li {
-  list-style: none;
-  margin-bottom: 5px;
+.history li {
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid #222;
 }
