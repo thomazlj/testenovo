@@ -1,335 +1,183 @@
-// ===============================
-// CONFIG
-// ===============================
-const STUDY_TOTAL = 50 * 60;
-const SHORT_BREAK = 10 * 60;
-const LONG_BREAK = 30 * 60;
-const POMODORO_MAX = 4;
+const FOCUS_TIME = 50 * 60;
+const BREAK_TIME = 10 * 60;
 
-// ===============================
-// ESTADO
-// ===============================
-let studyTime = STUDY_TOTAL;
-let breakTime = SHORT_BREAK;
-let distractionTime = 0;
-
-let pomodoros = 0;
-let state = "study"; // study | distracted | break
-let paused = true;
-
-let speed = 1;
+let timeLeft = FOCUS_TIME;
+let isRunning = false;
+let isFocus = true;
+let interval = null;
+let cycles = 0;
+let distractionSeconds = 0;
+let dailyFocusSeconds = 0;
+let speedMultiplier = 1;
 let autoStart = false;
 
-// flags
-let focusStartedLogged = false;
-let breakStartedLogged = false;
+const timerEl = document.getElementById("timer");
+const stateLabel = document.getElementById("stateLabel");
+const playPauseBtn = document.getElementById("playPauseBtn");
+const resetBtn = document.getElementById("resetBtn");
+const pipBtn = document.getElementById("pipBtn");
+const autoStartBtn = document.getElementById("autoStartBtn");
+const speedSelect = document.getElementById("speedSelect");
+const distractionTimeEl = document.getElementById("distractionTime");
+const cycleCountEl = document.getElementById("cycleCount");
+const historyList = document.getElementById("historyList");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const dailyTotalEl = document.getElementById("dailyTotal");
+const resetDayBtn = document.getElementById("resetDayBtn");
 
-// ===============================
-// AUDIO
-// ===============================
-let audioCtx = null;
+/* ===========================
+   🔥 LOCAL STORAGE
+=========================== */
 
-function beep(duration = 200, frequency = 880, volume = 0.2) {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.frequency.value = frequency;
-  gain.gain.value = volume;
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration / 1000);
+function saveData() {
+  localStorage.setItem("history", historyList.innerHTML);
+  localStorage.setItem("dailyFocusSeconds", dailyFocusSeconds);
 }
 
-function focusEndSound() {
-  beep(200, 880);
-  setTimeout(() => beep(200, 880), 300);
+function loadData() {
+  const savedHistory = localStorage.getItem("history");
+  const savedTotal = localStorage.getItem("dailyFocusSeconds");
+
+  if (savedHistory) historyList.innerHTML = savedHistory;
+  if (savedTotal) dailyFocusSeconds = parseInt(savedTotal);
 }
 
-function breakEndSound() {
-  beep(500, 523);
-}
+loadData();
 
-// ===============================
-// UTIL
-// ===============================
-function formatTime(sec) {
-  const m = String(Math.floor(sec / 60)).padStart(2, "0");
-  const s = String(sec % 60).padStart(2, "0");
+/* ===========================
+   FORMATADORES
+=========================== */
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 }
 
-function now() {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+function updateDisplay() {
+  timerEl.textContent = formatTime(timeLeft);
+  distractionTimeEl.textContent = formatTime(distractionSeconds);
+  cycleCountEl.textContent = `${cycles}/4`;
+  dailyTotalEl.textContent = formatTime(dailyFocusSeconds);
 }
 
-// ===============================
-// HISTÓRICO
-// ===============================
+/* ===========================
+   HISTÓRICO
+=========================== */
+
 function addHistory(text) {
   const li = document.createElement("li");
-  li.textContent = `${now()} — ${text}`;
-  document.getElementById("historyList").prepend(li);
+  const now = new Date().toLocaleTimeString();
+  li.textContent = `${now} — ${text}`;
+  historyList.appendChild(li);
+  saveData();
 }
 
-function clearHistory() {
-  document.getElementById("historyList").innerHTML = "";
-}
+/* ===========================
+   TIMER
+=========================== */
 
-// ===============================
-// UI
-// ===============================
-function updateUI() {
-  document.getElementById("studyTimer").textContent =
-    state === "break" ? formatTime(breakTime) : formatTime(studyTime);
+function tick() {
+  timeLeft -= speedMultiplier;
 
-  document.getElementById("distractionTimer").textContent =
-    formatTime(distractionTime);
-
-  document.getElementById("pomodoros").textContent = pomodoros;
-  document.getElementById("pomodoroMax").textContent = POMODORO_MAX;
-
-  const s = document.getElementById("state");
-
-  if (paused) {
-    s.textContent = "PAUSADO";
-    s.style.background = "#555";
-  } else if (state === "study") {
-    s.textContent = "FOCANDO";
-    s.style.background = "#20e070";
-  } else if (state === "break") {
-    s.textContent = breakTime === LONG_BREAK ? "DESCANSO LONGO" : "DESCANSO";
-    s.style.background = "#3498db";
-  } else {
-    s.textContent = "DISTRAÍDO";
-    s.style.background = "#ff4d4d";
+  if (isFocus && isRunning) {
+    dailyFocusSeconds += speedMultiplier;
   }
 
-  document.getElementById("distractBtn").style.display =
-    !paused && state === "study" ? "inline-block" : "none";
+  if (timeLeft <= 0) {
+    clearInterval(interval);
+    isRunning = false;
 
-  document.getElementById("focusBtn").style.display =
-    !paused && state === "distracted" ? "inline-block" : "none";
-
-  document.getElementById("skipBreakBtn").style.display =
-    !paused && state === "break" ? "inline-block" : "none";
-
-  document.getElementById("skipFocusBtn").style.display =
-    !paused && state === "study" ? "inline-block" : "none";
-
-  document.getElementById("autoStartBtn").textContent =
-    autoStart ? "ON" : "OFF";
-
-  drawPiP(); // <<< atualização do PiP
-}
-
-// ===============================
-// CONTROLES
-// ===============================
-function togglePause() {
-  if (paused) {
-    paused = false;
-
-    if (state === "study" && studyTime === STUDY_TOTAL && !focusStartedLogged) {
-      addHistory("Foco iniciado");
-      focusStartedLogged = true;
-    } else if (state === "break" && !breakStartedLogged) {
-      addHistory(
-        breakTime === LONG_BREAK
-          ? "Descanso iniciado — 30:00"
-          : "Descanso iniciado — 10:00"
-      );
-      breakStartedLogged = true;
+    if (isFocus) {
+      cycles++;
+      addHistory("Foco concluído");
+      isFocus = false;
+      timeLeft = BREAK_TIME;
+      stateLabel.textContent = "DESCANSO";
     } else {
-      addHistory("▶️ Play");
+      addHistory("Descanso concluído");
+      isFocus = true;
+      timeLeft = FOCUS_TIME;
+      stateLabel.textContent = "FOCANDO";
     }
 
-  } else {
-    paused = true;
-    addHistory("⏸ Pause");
+    if (autoStart) {
+      startTimer();
+    }
+
+    saveData();
   }
 
-  updateUI();
+  updateDisplay();
 }
 
-function toggleAutoStart() {
+function startTimer() {
+  if (!interval) {
+    interval = setInterval(tick, 1000);
+  }
+  isRunning = true;
+  playPauseBtn.textContent = "⏸";
+}
+
+function pauseTimer() {
+  isRunning = false;
+  playPauseBtn.textContent = "▶";
+}
+
+playPauseBtn.addEventListener("click", () => {
+  if (isRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+});
+
+resetBtn.addEventListener("click", () => {
+  clearInterval(interval);
+  interval = null;
+  isRunning = false;
+  timeLeft = isFocus ? FOCUS_TIME : BREAK_TIME;
+  playPauseBtn.textContent = "▶";
+  updateDisplay();
+});
+
+/* ===========================
+   🔥 ZERAR DIA
+=========================== */
+
+resetDayBtn.addEventListener("click", () => {
+  if (dailyFocusSeconds > 0) {
+    addHistory(`Total do dia zerado (${formatTime(dailyFocusSeconds)})`);
+  }
+  dailyFocusSeconds = 0;
+  saveData();
+  updateDisplay();
+});
+
+/* ===========================
+   OUTROS
+=========================== */
+
+autoStartBtn.addEventListener("click", () => {
   autoStart = !autoStart;
-  updateUI();
-}
+  autoStartBtn.textContent = autoStart ? "ON" : "OFF";
+});
 
-function setSpeed(v) {
-  speed = Number(v);
-}
+speedSelect.addEventListener("change", (e) => {
+  speedMultiplier = parseInt(e.target.value);
+});
 
-function distract() {
-  if (!paused && state === "study") {
-    state = "distracted";
-    addHistory("Entrou em distração");
-    updateUI();
-  }
-}
+clearHistoryBtn.addEventListener("click", () => {
+  historyList.innerHTML = "";
+  saveData();
+});
 
-function returnToFocus() {
-  if (!paused && state === "distracted") {
-    state = "study";
-    addHistory("Voltou a focar");
-    updateUI();
-  }
-}
-
-function skipFocus() {
-  if (state === "study") {
-    addHistory(
-      `Foco pulado — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
-    );
-    startBreak(false);
-  }
-}
-
-function skipBreak() {
-  if (state === "break") {
-    addHistory("Descanso pulado");
-    startNextStudy(false);
-  }
-}
-
-function resetAll() {
-  addHistory(
-    `Sessão resetada — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
-  );
-  studyTime = STUDY_TOTAL;
-  breakTime = SHORT_BREAK;
-  distractionTime = 0;
-  pomodoros = 0;
-  focusStartedLogged = false;
-  breakStartedLogged = false;
-  state = "study";
-  paused = true;
-  updateUI();
-}
-
-// ===============================
-// TRANSIÇÕES
-// ===============================
-function startBreak(playSound = true) {
-  if (playSound) focusEndSound();
-
-  addHistory(
-    `Foco concluído — Foco: 50:00 | Distração: ${formatTime(distractionTime)}`
-  );
-
-  pomodoros++;
-  breakTime = pomodoros % POMODORO_MAX === 0 ? LONG_BREAK : SHORT_BREAK;
-  distractionTime = 0;
-  state = "break";
-  breakStartedLogged = false;
-  focusStartedLogged = false;
-
-  paused = !autoStart;
-
-  if (autoStart) {
-    addHistory(
-      breakTime === LONG_BREAK
-        ? "Descanso iniciado — 30:00"
-        : "Descanso iniciado — 10:00"
-    );
-    breakStartedLogged = true;
-  }
-}
-
-function startNextStudy(playSound = true) {
-  if (playSound) breakEndSound();
-
-  addHistory(
-    breakTime === LONG_BREAK
-      ? "Descanso longo concluído — 30:00"
-      : "Descanso concluído — 10:00"
-  );
-
-  studyTime = STUDY_TOTAL;
-  breakTime = SHORT_BREAK;
-  state = "study";
-  paused = !autoStart;
-}
-
-// ===============================
-// LOOP
-// ===============================
-setInterval(() => {
-  if (paused) return;
-
-  for (let i = 0; i < speed; i++) {
-    if (state === "study") {
-      studyTime--;
-      if (studyTime <= 0) {
-        startBreak(true);
-        break;
-      }
-    } else if (state === "break") {
-      breakTime--;
-      if (breakTime <= 0) {
-        startNextStudy(true);
-        break;
-      }
-    } else if (state === "distracted") {
-      distractionTime++;
-    }
-  }
-
-  updateUI();
-}, 1000);
-
-// ===============================
-// PICTURE-IN-PICTURE
-// ===============================
-const pipCanvas = document.createElement("canvas");
-pipCanvas.width = 400;
-pipCanvas.height = 200;
-const pipCtx = pipCanvas.getContext("2d");
-
-const pipVideo = document.getElementById("pipVideo");
-pipVideo.srcObject = pipCanvas.captureStream();
-pipVideo.play();
-
-function drawPiP() {
-  pipCtx.clearRect(0, 0, 400, 200);
-
-  pipCtx.fillStyle = "#000";
-  pipCtx.fillRect(0, 0, 400, 200);
-
-  pipCtx.fillStyle = "#20e070";
-  pipCtx.font = "bold 48px Arial";
-  pipCtx.textAlign = "center";
-  pipCtx.fillText(
-    state === "break" ? formatTime(breakTime) : formatTime(studyTime),
-    200,
-    110
-  );
-
-  pipCtx.font = "bold 20px Arial";
-  pipCtx.fillText(
-    paused
-      ? "PAUSADO"
-      : state === "study"
-      ? "FOCANDO"
-      : state === "break"
-      ? "DESCANSO"
-      : "DISTRAÍDO",
-    200,
-    40
-  );
-}
-
-async function togglePiP() {
+pipBtn.addEventListener("click", async () => {
   if (document.pictureInPictureElement) {
-    await document.exitPictureInPicture();
+    document.exitPictureInPicture();
   } else {
-    await pipVideo.requestPictureInPicture();
+    await document.documentElement.requestPictureInPicture();
   }
-}
+});
 
-// INIT
-updateUI();
+updateDisplay();
