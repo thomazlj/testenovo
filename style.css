@@ -17,16 +17,28 @@ body {
   margin-bottom: 30px;
 }
 
+.timer-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
 .timer {
   font-size: 120px;
   color: #20e070;
-  margin-bottom: 20px;
+}
+
+.day-total {
+  font-size: 18px;
+  color: #aaa;
+  min-width: 150px;
 }
 
 .stats {
   display: flex;
   gap: 50px;
   margin-bottom: 30px;
+  margin-top: 20px;
 }
 
 .stat {
@@ -46,6 +58,7 @@ body {
   display: flex;
   gap: 15px;
   margin-bottom: 40px;
+  flex-wrap: wrap;
 }
 
 button {
@@ -58,6 +71,7 @@ button {
 
 .danger { background: #e74c3c; color: white; }
 .success { background: #20e070; color: #063; }
+
 .ghost {
   background: #111;
   color: #aaa;
