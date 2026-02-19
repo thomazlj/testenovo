@@ -13,17 +13,18 @@ let studyTime = STUDY_TOTAL;
 let breakTime = SHORT_BREAK;
 let distractionTime = 0;
 
+let totalFocusSeconds = 0; // ✅ NOVO
+
 let pomodoros = 0;
-let state = "study"; // study | distracted | break
+let state = "study";
 let paused = true;
 
 let speed = 1;
 let autoStart = false;
 
-// flags
 let focusStartedLogged = false;
 let breakStartedLogged = false;
-let isLongBreak = false; // ✅ correção #3
+let isLongBreak = false;
 
 // ===============================
 // AUDIO
@@ -62,6 +63,12 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
+function formatTotalTime(sec) {
+  const h = String(Math.floor(sec / 3600)).padStart(2, "0");
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
 function now() {
   const d = new Date();
   return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
@@ -89,6 +96,9 @@ function updateUI() {
 
   document.getElementById("distractionTimer").textContent =
     formatTime(distractionTime);
+
+  document.getElementById("totalFocus").textContent =
+    formatTotalTime(totalFocusSeconds);
 
   document.getElementById("pomodoros").textContent = pomodoros;
   document.getElementById("pomodoroMax").textContent = POMODORO_MAX;
@@ -186,14 +196,14 @@ function skipFocus() {
     addHistory(
       `Foco pulado — Foco: ${formatTime(STUDY_TOTAL - studyTime)} | Distração: ${formatTime(distractionTime)}`
     );
-    startBreak(false, true); // ✅ correção #1
+    startBreak(false, true);
   }
 }
 
 function skipBreak() {
   if (state === "break") {
     addHistory("Descanso pulado");
-    startNextStudy(false, true); // ✅ correção #2
+    startNextStudy(false, true);
   }
 }
 
@@ -260,7 +270,7 @@ function startNextStudy(playSound = true, skipped = false) {
   studyTime = STUDY_TOTAL;
   breakTime = SHORT_BREAK;
   isLongBreak = false;
-  focusStartedLogged = false; // ✅ correção #5
+  focusStartedLogged = false;
   state = "study";
   paused = !autoStart;
 }
@@ -274,6 +284,12 @@ setInterval(() => {
   for (let i = 0; i < speed; i++) {
     if (state === "study") {
       studyTime--;
+      totalFocusSeconds++; // ✅ acumula foco real
+
+      if (totalFocusSeconds % 3600 === 0) {
+        addHistory(`⏱️ Total acumulado: ${formatTotalTime(totalFocusSeconds)}`);
+      }
+
       if (studyTime <= 0) {
         startBreak(true, false);
         break;
@@ -341,5 +357,4 @@ async function togglePiP() {
   }
 }
 
-// INIT
 updateUI();
