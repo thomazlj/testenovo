@@ -1,7 +1,7 @@
 // ===============================
 // CONFIG
 // ===============================
-const STUDY_TOTAL = 50 * 60;
+const STUDY_TOTAL = 60 * 60;
 const SHORT_BREAK = 10 * 60;
 const LONG_BREAK = 30 * 60;
 const POMODORO_MAX = 4;
