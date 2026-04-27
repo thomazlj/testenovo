@@ -235,7 +235,7 @@ function startBreak(playSound = true, skipped = false) {
 
   if (!skipped) {
     addHistory(
-      `Foco concluído — Foco: 60:00 | Distração: ${formatTime(distractionTime)}`
+      `Foco concluído — Foco: ${formatTime(STUDY_TOTAL)} | Distração: ${formatTime(distractionTime)}`
     );
   }
 
